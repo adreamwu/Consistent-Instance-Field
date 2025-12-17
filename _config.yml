@@ -1,0 +1,117 @@
+title: "Consistent Instance Field for Dynamic Scene Understanding"
+
+# keywords: 
+
+authors:
+  - name: "Junyi Wu"
+    url: "https://adreamwu.github.io/"
+    affiliation: "1,2,†"
+  - name: "Van Nguyen Nguyen"
+    url: "https://nv-nguyen.github.io/"
+    affiliation: "2,‡"
+  - name: "Benjamin Planche"
+    url: "https://planche.me/"
+    affiliation: "2,‡"
+  - name: "Jiachen Tao"
+    url: "https://scholar.google.com/citations?user=NsYqGP8AAAAJ&hl=en"
+    affiliation: "1,2,†"
+  - name: "Changchang Sun"
+    url: "https://changchangsun.github.io/Changchangsun/"
+    affiliation: "1"
+  - name: "Zhongpai Gao"
+    url: "https://sites.google.com/site/gaozhongpai/home"
+    affiliation: "2"
+  - name: "Zhenghao Zhao"
+    url: "https://ichbill.github.io/"
+    affiliation: "1"
+  - name: "Anwesa Choudhuri"
+    url: "https://anwesachoudhuri.github.io/"
+    affiliation: "2"
+  - name: "Gengyu Zhang"
+    url: "https://www.linkedin.com/in/gengyu-zhang-171243186/"
+    affiliation: "1"
+  - name: "Meng Zheng"
+    url: "https://meng-zheng.com/"
+    affiliation: "2"
+  - name: "Feiran Wang"
+    url: "https://brack-wang.github.io/"
+    affiliation: "1"
+  - name: "Terrence Chen"
+    url: "https://scholar.google.com/citations?user=S2BT6ogAAAAJ&hl=en"
+    affiliation: "2"
+  - name: "Yan Yan"
+    url: "https://scholar.google.com/citations?user=zhi-j1wAAAAJ&hl=en"
+    affiliation: "1"
+  - name: "Ziyan Wu"
+    url: "https://wuziyan.com/"
+    affiliation: "2"
+
+affiliations:
+  - name: University of Illinois Chicago, Chicago, IL, USA
+    url: "https://www.uic.edu/"
+  - name: United Imaging Intelligence, Boston, MA, USA
+    url: "https://usa.united-imaging.com/"
+
+affiliation_notes:
+  - symbol: "†"
+    text: "This work was carried out during the internship of Junyi Wu and Jiachen Tao at United Imaging Intelligence, Boston, MA, USA."
+  - symbol: "‡"
+    text: "Corresponding authors."
+
+links:
+  - name: "arXiv"
+    url: "https://arxiv.org/abs/2512.14126"
+  - name: "Paper"
+    url: "https://arxiv.org/pdf/2512.14126.pdf"
+
+teaser: assets/images/method.jpg
+
+sections:
+  - title: "Open-Vocabulary 4D Querying on HyperNeRF"
+    description: |
+      Demonstration of open-vocabulary 4D querying capabilities on the HyperNeRF dataset.
+    media:
+      - type: "video"
+        src: "assets/videos/open_vocabulary_4d_querying_hypernerf1.mp4"
+      - type: "video"
+        src: "assets/videos/open_vocabulary_4d_querying_hypernerf2.mp4"
+      - type: "video"
+        src: "assets/videos/open_vocabulary_4d_querying_hypernerf3.mp4"
+      - type: "video"
+        src: "assets/videos/open_vocabulary_4d_querying_hypernerf4.mp4"
+
+  - title: "Panoptic Segmentation on HyperNeRF"
+    description: |
+      Novel-view panoptic segmentation results on the HyperNeRF dataset.
+    media:
+      - type: "video"
+        src: "assets/videos/panoptic_segmentation_hypernef1.mp4"
+      - type: "video"
+        src: "assets/videos/panoptic_segmentation_hypernef2.mp4"
+      - type: "video"
+        src: "assets/videos/panoptic_segmentation_hypernef3.mp4"
+
+  - title: "Panoptic Segmentation on Neu3D"
+    description: |
+      Novel-view panoptic segmentation results on the Neu3D dataset.
+    media:
+      - type: "video"
+        src: "assets/videos/panoptic_segmentation_neu3d1.mp4"
+      - type: "video"
+        src: "assets/videos/panoptic_segmentation_neu3d2.mp4"
+      - type: "video"
+        src: "assets/videos/panoptic_segmentation_neu3d3.mp4"
+
+bibtex: |
+  @misc{wu2025consistentinstancefielddynamic,
+        title={ Consistent Instance Field for Dynamic Scene Understanding },
+        author={ Junyi Wu and Van Nguyen Nguyen and Benjamin Planche and Jiachen Tao and Changchang Sun and Zhongpai Gao and Zhenghao Zhao and Anwesa Choudhuri and Gengyu Zhang and Meng Zheng and Feiran Wang and Terrence Chen and Yan Yan and Ziyan Wu },
+        year={ 2025 },
+        eprint={ 2512.14126 },
+        archivePrefix={arXiv},
+        primaryClass={cs.CV},
+        url={ https://arxiv.org/abs/2512.14126 }
+    }
+
+abstract: |
+  We introduce Consistent Instance Field, a continuous and probabilistic spatio-temporal representation for dynamic scene understanding. Unlike prior methods that rely on discrete tracking or view-dependent features, our approach disentangles visibility from persistent object identity by modeling each space-time point with an occupancy probability and a conditional instance distribution. To realize this, we introduce a novel instance-embedded representation based on deformable 3D Gaussians, which jointly encode radiance and semantic information and are learned directly from input RGB images and instance masks through differentiable rasterization. Furthermore, we introduce new mechanisms to calibrate per-Gaussian identities and resample Gaussians toward semantically active regions, ensuring consistent instance representations across space and time. Experiments on HyperNeRF and Neu3D datasets demonstrate that our method significantly outperforms state-of-the-art methods on novel-view panoptic segmentation and open-vocabulary 4D querying tasks.
