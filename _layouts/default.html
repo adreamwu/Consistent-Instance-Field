@@ -121,20 +121,14 @@
 
   <div class="sections">
     {% for section in site.sections %}
-      <h2>{{ section.title }}</h2>
-      <p style="padding-bottom: 5px;">{{ section.description }}</p>
-      <div class="{% if section.media.size > 1 %}b-dics{% endif %}">
+      <div class="video-container">
         {% for item in section.media %}
           {%- assign media_name = item.src | split: '/' | last -%}
           {%- assign media_alt = item.alt | default: media_name | remove: '.png' | remove: '.jpg' | remove: '.jpeg' | remove: '.gif' | remove: '.mp4' -%}
           {% if item.type == "image" %}
             <img src="{{ item.src }}" alt="{{ media_alt }}">
           {% elsif item.type == "video" %}
-            {% if section.media.size > 1 %}
-                  <video src="{{ item.src }}" loop muted alt="{{ media_alt }}">
-            {% else %}
-                  <video src="{{ item.src }}" controls alt="{{ media_alt }}">
-            {% endif %}
+            <video src="{{ item.src }}" controls alt="{{ media_alt }}">
               Your browser does not support the video tag.
             </video>
           {% endif %}
