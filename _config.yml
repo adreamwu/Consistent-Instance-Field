@@ -80,17 +80,6 @@ sections:
       - type: "video"
         src: "assets/videos/open_vocabulary_4d_querying_hypernerf4.mp4"
 
-  - title: "Panoptic Segmentation on HyperNeRF"
-    description: |
-      Novel-view panoptic segmentation results on the HyperNeRF dataset.
-    media:
-      - type: "video"
-        src: "assets/videos/panoptic_segmentation_hypernef1.mp4"
-      - type: "video"
-        src: "assets/videos/panoptic_segmentation_hypernef2.mp4"
-      - type: "video"
-        src: "assets/videos/panoptic_segmentation_hypernef3.mp4"
-
   - title: "Panoptic Segmentation on Neu3D"
     description: |
       Novel-view panoptic segmentation results on the Neu3D dataset.
