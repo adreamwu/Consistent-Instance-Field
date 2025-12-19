@@ -1,0 +1,1615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CIF | Consistent Instance Field for Dynamic Scene Understanding</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600&family=Source+Sans+3:wght@300;400;500;600&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            /* Deep space background */
+            --bg-dark: #05080f;
+            --bg-card: rgba(15, 22, 36, 0.85);
+            --bg-elevated: rgba(20, 30, 50, 0.9);
+            /* Instance segmentation colors - vibrant and distinct */
+            --instance-cyan: #00f5ff;
+            --instance-magenta: #ff2d95;
+            --instance-lime: #7fff00;
+            --instance-orange: #ff8c00;
+            --instance-purple: #b14eff;
+            --instance-yellow: #ffd700;
+            --instance-blue: #4d8eff;
+            /* Text */
+            --text-primary: #f0f6fc;
+            --text-secondary: #a8b9cf;
+            --text-muted: #6b7d93;
+            --border-subtle: rgba(0, 245, 255, 0.12);
+            /* Gradients */
+            --gradient-hero: linear-gradient(135deg, var(--instance-cyan) 0%, var(--instance-magenta) 50%, var(--instance-purple) 100%);
+            --gradient-instance: linear-gradient(45deg, var(--instance-cyan), var(--instance-lime), var(--instance-yellow), var(--instance-orange), var(--instance-magenta));
+            --border-alpha: 255, 255, 255;
+        }
+
+        /* Light theme */
+        [data-theme="light"] {
+            --bg-dark: #f5f7fa;
+            --bg-card: rgba(255, 255, 255, 0.9);
+            --bg-elevated: rgba(255, 255, 255, 0.95);
+            --instance-cyan: #0099a8;
+            --instance-magenta: #d4247a;
+            --instance-lime: #4a9900;
+            --instance-orange: #cc7000;
+            --instance-purple: #8c3dcc;
+            --instance-yellow: #b8960a;
+            --instance-blue: #3a6acc;
+            --text-primary: #1a1f2e;
+            --text-secondary: #4a5568;
+            --text-muted: #718096;
+            --border-subtle: rgba(0, 153, 168, 0.15);
+            --gradient-hero: linear-gradient(135deg, var(--instance-cyan) 0%, var(--instance-magenta) 50%, var(--instance-purple) 100%);
+            --gradient-instance: linear-gradient(45deg, var(--instance-cyan), var(--instance-lime), var(--instance-yellow), var(--instance-orange), var(--instance-magenta));
+            --border-alpha: 0, 0, 0;
+        }
+
+        [data-theme="light"] .gaussian-field {
+            background: 
+                radial-gradient(ellipse 120% 80% at 20% 80%, rgba(0, 153, 168, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse 100% 60% at 80% 20%, rgba(212, 36, 122, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 100% at 60% 60%, rgba(140, 61, 204, 0.05) 0%, transparent 50%),
+                var(--bg-dark);
+        }
+
+        [data-theme="light"] .gaussian-splat {
+            opacity: 0.15;
+        }
+
+        [data-theme="light"] .feature-card:hover {
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1), 0 0 30px rgba(0, 153, 168, 0.08);
+        }
+
+        [data-theme="light"] .teaser,
+        [data-theme="light"] .feature-card,
+        [data-theme="light"] .pipeline-figure,
+        [data-theme="light"] .video-card,
+        [data-theme="light"] .citation-box {
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        [data-theme="light"] header {
+            background: linear-gradient(to bottom, var(--bg-dark) 0%, rgba(245, 247, 250, 0) 100%);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Source Sans 3', sans-serif;
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.7;
+            overflow-x: hidden;
+        }
+
+        /* === GAUSSIAN SPLAT BACKGROUND === */
+        .gaussian-field {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -2;
+            background: 
+                radial-gradient(ellipse 120% 80% at 20% 80%, rgba(0, 245, 255, 0.06) 0%, transparent 50%),
+                radial-gradient(ellipse 100% 60% at 80% 20%, rgba(255, 45, 149, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse 80% 100% at 60% 60%, rgba(177, 78, 255, 0.04) 0%, transparent 50%),
+                var(--bg-dark);
+        }
+
+        /* Animated Gaussian Splats */
+        .splat-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        .gaussian-splat {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(40px);
+            mix-blend-mode: screen;
+            will-change: transform, opacity;
+        }
+
+        /* Instance-colored splats with unique animations */
+        .splat-1 {
+            width: 180px; height: 180px;
+            background: radial-gradient(circle, var(--instance-cyan) 0%, transparent 70%);
+            top: 15%; left: 8%;
+            animation: splat-drift-1 18s ease-in-out infinite, splat-pulse 4s ease-in-out infinite;
+        }
+        .splat-2 {
+            width: 220px; height: 160px;
+            background: radial-gradient(ellipse, var(--instance-magenta) 0%, transparent 70%);
+            top: 60%; right: 12%;
+            animation: splat-drift-2 22s ease-in-out infinite, splat-pulse 5s ease-in-out infinite 1s;
+        }
+        .splat-3 {
+            width: 150px; height: 200px;
+            background: radial-gradient(ellipse, var(--instance-lime) 0%, transparent 70%);
+            bottom: 20%; left: 25%;
+            animation: splat-drift-3 20s ease-in-out infinite, splat-pulse 3.5s ease-in-out infinite 0.5s;
+        }
+        .splat-4 {
+            width: 200px; height: 140px;
+            background: radial-gradient(ellipse, var(--instance-purple) 0%, transparent 70%);
+            top: 30%; right: 30%;
+            animation: splat-drift-4 25s ease-in-out infinite, splat-pulse 4.5s ease-in-out infinite 2s;
+        }
+        .splat-5 {
+            width: 130px; height: 130px;
+            background: radial-gradient(circle, var(--instance-orange) 0%, transparent 70%);
+            top: 75%; left: 60%;
+            animation: splat-drift-5 19s ease-in-out infinite, splat-pulse 3s ease-in-out infinite 1.5s;
+        }
+        .splat-6 {
+            width: 170px; height: 120px;
+            background: radial-gradient(ellipse, var(--instance-yellow) 0%, transparent 70%);
+            top: 5%; right: 20%;
+            animation: splat-drift-6 23s ease-in-out infinite, splat-pulse 5.5s ease-in-out infinite;
+        }
+        .splat-7 {
+            width: 100px; height: 160px;
+            background: radial-gradient(ellipse, var(--instance-blue) 0%, transparent 70%);
+            bottom: 35%; left: 5%;
+            animation: splat-drift-7 17s ease-in-out infinite, splat-pulse 4s ease-in-out infinite 3s;
+        }
+        .splat-8 {
+            width: 140px; height: 140px;
+            background: radial-gradient(circle, var(--instance-cyan) 0%, transparent 70%);
+            top: 45%; left: 45%;
+            animation: splat-drift-8 21s ease-in-out infinite, splat-pulse 3.8s ease-in-out infinite 0.8s;
+        }
+
+        /* Unique drift animations for each splat - 4D feel */
+        @keyframes splat-drift-1 {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.25; }
+            25% { transform: translate(60px, -40px) scale(1.2) rotate(5deg); opacity: 0.35; }
+            50% { transform: translate(30px, 50px) scale(0.9) rotate(-3deg); opacity: 0.2; }
+            75% { transform: translate(-40px, 20px) scale(1.1) rotate(8deg); opacity: 0.3; }
+        }
+        @keyframes splat-drift-2 {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.2; }
+            33% { transform: translate(-50px, 60px) scale(1.15) rotate(-8deg); opacity: 0.3; }
+            66% { transform: translate(40px, -30px) scale(0.85) rotate(5deg); opacity: 0.25; }
+        }
+        @keyframes splat-drift-3 {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.22; }
+            20% { transform: translate(70px, 20px) scale(1.1) rotate(10deg); opacity: 0.28; }
+            40% { transform: translate(50px, -50px) scale(0.95) rotate(-5deg); opacity: 0.18; }
+            60% { transform: translate(-30px, -20px) scale(1.2) rotate(3deg); opacity: 0.32; }
+            80% { transform: translate(-50px, 40px) scale(0.9) rotate(-8deg); opacity: 0.24; }
+        }
+        @keyframes splat-drift-4 {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.18; }
+            50% { transform: translate(-60px, 70px) scale(1.25); opacity: 0.28; }
+        }
+        @keyframes splat-drift-5 {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.2; }
+            25% { transform: translate(-40px, -60px) scale(1.1) rotate(-12deg); opacity: 0.28; }
+            50% { transform: translate(50px, -40px) scale(0.9) rotate(8deg); opacity: 0.22; }
+            75% { transform: translate(30px, 50px) scale(1.15) rotate(-5deg); opacity: 0.3; }
+        }
+        @keyframes splat-drift-6 {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.15; }
+            33% { transform: translate(40px, 80px) scale(1.2); opacity: 0.25; }
+            66% { transform: translate(-60px, 40px) scale(0.85); opacity: 0.2; }
+        }
+        @keyframes splat-drift-7 {
+            0%, 100% { transform: translate(0, 0) scale(1) rotate(0deg); opacity: 0.2; }
+            50% { transform: translate(80px, -30px) scale(1.3) rotate(15deg); opacity: 0.3; }
+        }
+        @keyframes splat-drift-8 {
+            0%, 100% { transform: translate(0, 0) scale(1); opacity: 0.12; }
+            25% { transform: translate(-30px, 40px) scale(1.15); opacity: 0.2; }
+            50% { transform: translate(40px, 60px) scale(0.9); opacity: 0.15; }
+            75% { transform: translate(60px, -20px) scale(1.1); opacity: 0.22; }
+        }
+
+        @keyframes splat-pulse {
+            0%, 100% { filter: blur(40px); }
+            50% { filter: blur(55px); }
+        }
+
+        /* Floating micro-particles (small Gaussians) */
+        .micro-particles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            pointer-events: none;
+        }
+
+        .particle {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(2px);
+            opacity: 0;
+            animation: particle-float 12s ease-in-out infinite;
+        }
+
+        .particle-1 { width: 6px; height: 6px; background: var(--instance-cyan); top: 20%; left: 15%; animation-delay: 0s; }
+        .particle-2 { width: 4px; height: 4px; background: var(--instance-magenta); top: 35%; left: 75%; animation-delay: 2s; }
+        .particle-3 { width: 5px; height: 5px; background: var(--instance-lime); top: 65%; left: 25%; animation-delay: 4s; }
+        .particle-4 { width: 3px; height: 3px; background: var(--instance-purple); top: 80%; left: 85%; animation-delay: 6s; }
+        .particle-5 { width: 5px; height: 5px; background: var(--instance-orange); top: 10%; left: 55%; animation-delay: 1s; }
+        .particle-6 { width: 4px; height: 4px; background: var(--instance-yellow); top: 50%; left: 5%; animation-delay: 3s; }
+        .particle-7 { width: 6px; height: 6px; background: var(--instance-blue); top: 70%; left: 45%; animation-delay: 5s; }
+        .particle-8 { width: 3px; height: 3px; background: var(--instance-cyan); top: 25%; left: 90%; animation-delay: 7s; }
+        .particle-9 { width: 5px; height: 5px; background: var(--instance-magenta); top: 90%; left: 35%; animation-delay: 8s; }
+        .particle-10 { width: 4px; height: 4px; background: var(--instance-lime); top: 5%; left: 30%; animation-delay: 9s; }
+
+        @keyframes particle-float {
+            0% { opacity: 0; transform: translateY(0) scale(0.5); }
+            10% { opacity: 0.8; transform: translateY(-20px) scale(1); }
+            90% { opacity: 0.8; transform: translateY(-80px) scale(1); }
+            100% { opacity: 0; transform: translateY(-100px) scale(0.5); }
+        }
+
+
+        /* Header */
+        header {
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 100;
+            background: linear-gradient(to bottom, rgba(5, 8, 15, 0.98) 0%, rgba(5, 8, 15, 0.8) 50%, transparent 100%);
+        }
+
+        .logo {
+            font-family: 'Fira Code', monospace;
+            font-size: 1.2rem;
+            font-weight: 600;
+            background: var(--gradient-hero);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            letter-spacing: 0.05em;
+            background-size: 200% auto;
+            animation: title-shimmer 4s ease-in-out infinite;
+        }
+
+        nav {
+            display: flex;
+            align-items: center;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 2rem;
+            font-size: 0.9rem;
+            font-weight: 400;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        nav a::after {
+            content: '';
+            position: absolute;
+            bottom: -4px;
+            left: 0;
+            width: 0;
+            height: 2px;
+            background: var(--gradient-hero);
+            transition: width 0.3s ease;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+        }
+
+        nav a:hover::after {
+            width: 100%;
+        }
+
+        /* Theme Toggle */
+        .theme-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-left: 2rem;
+        }
+
+        .theme-toggle-btn {
+            background: rgba(var(--border-alpha), 0.05);
+            border: 1px solid rgba(var(--border-alpha), 0.1);
+            border-radius: 20px;
+            width: 44px;
+            height: 24px;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.3s ease;
+            padding: 0;
+        }
+
+        .theme-toggle-btn:hover {
+            background: rgba(var(--border-alpha), 0.1);
+        }
+
+        .theme-toggle-btn::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 18px;
+            height: 18px;
+            background: var(--instance-cyan);
+            border-radius: 50%;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+        }
+
+        [data-theme="light"] .theme-toggle-btn::after {
+            transform: translateX(20px);
+            background: var(--instance-orange);
+        }
+
+        .theme-toggle-icon {
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+            transition: opacity 0.3s ease;
+        }
+
+        .theme-toggle-icon.sun { opacity: 0.4; }
+        .theme-toggle-icon.moon { opacity: 1; }
+
+        [data-theme="light"] .theme-toggle-icon.sun { opacity: 1; }
+        [data-theme="light"] .theme-toggle-icon.moon { opacity: 0.4; }
+
+        [data-theme="light"] .theme-toggle-btn {
+            background: rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        /* Hero Section */
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 6rem 2rem 4rem;
+            position: relative;
+        }
+
+        .venue-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: rgba(0, 245, 255, 0.08);
+            border: 1px solid rgba(0, 245, 255, 0.25);
+            padding: 0.5rem 1.2rem;
+            border-radius: 2rem;
+            font-size: 0.85rem;
+            color: var(--instance-cyan);
+            margin-bottom: 2rem;
+            animation: fadeInUp 0.8s ease-out, badge-glow 3s ease-in-out infinite;
+        }
+
+        @keyframes badge-glow {
+            0%, 100% { box-shadow: 0 0 15px rgba(0, 245, 255, 0.1); }
+            50% { box-shadow: 0 0 25px rgba(0, 245, 255, 0.25); }
+        }
+
+        .title-container {
+            max-width: 950px;
+            animation: fadeInUp 0.8s ease-out 0.1s both;
+        }
+
+        h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: clamp(2.2rem, 5vw, 3.8rem);
+            font-weight: 500;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+        }
+
+        h1 .highlight {
+            background: var(--gradient-hero);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            animation: title-shimmer 4s ease-in-out infinite;
+            background-size: 200% auto;
+        }
+
+        @keyframes title-shimmer {
+            0%, 100% { background-position: 0% center; }
+            50% { background-position: 100% center; }
+        }
+
+        .subtitle {
+            font-size: clamp(1.1rem, 2.5vw, 1.4rem);
+            color: var(--text-secondary);
+            margin-bottom: 2.5rem;
+            font-weight: 300;
+        }
+
+        .subtitle::before {
+            content: '4D';
+            display: inline-block;
+            background: var(--gradient-instance);
+            background-size: 300% 100%;
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+            margin-right: 0.3em;
+            animation: gradient-shift 3s ease infinite;
+        }
+
+        @keyframes gradient-shift {
+            0%, 100% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+        }
+
+        .authors {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.3rem 1.5rem;
+            margin-bottom: 1rem;
+            animation: fadeInUp 0.8s ease-out 0.2s both;
+        }
+
+        .author {
+            font-size: 1rem;
+            color: var(--text-primary);
+            font-weight: 400;
+        }
+
+        .author a {
+            color: var(--text-primary);
+            text-decoration: none;
+            transition: all 0.2s ease;
+        }
+
+        .author a:hover {
+            color: var(--instance-cyan);
+            text-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
+        }
+
+        .author sup {
+            color: var(--instance-cyan);
+            font-size: 0.7rem;
+            margin-left: 2px;
+        }
+
+        .affiliations {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 2rem;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            margin-bottom: 3rem;
+            animation: fadeInUp 0.8s ease-out 0.3s both;
+        }
+
+        .affiliation sup {
+            color: var(--instance-cyan);
+            margin-right: 4px;
+        }
+
+        .affiliation a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .affiliation a:hover {
+            color: var(--instance-cyan);
+        }
+
+        .cta-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            justify-content: center;
+            animation: fadeInUp 0.8s ease-out 0.4s both;
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.9rem 1.8rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary {
+            background: var(--gradient-hero);
+            color: var(--bg-dark);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn-primary::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        .btn-primary:hover::before {
+            left: 100%;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(0, 245, 255, 0.4), 0 0 20px rgba(255, 45, 149, 0.3);
+        }
+
+        .btn-secondary {
+            background: var(--bg-card);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-primary);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--instance-cyan);
+            background: rgba(0, 245, 255, 0.08);
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.15);
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Scroll indicator */
+        .scroll-indicator {
+            position: absolute;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            animation: bounce 2s infinite;
+        }
+
+        .scroll-indicator svg {
+            width: 24px;
+            height: 24px;
+            color: var(--instance-cyan);
+            filter: drop-shadow(0 0 8px rgba(0, 245, 255, 0.5));
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateX(-50%) translateY(0); }
+            40% { transform: translateX(-50%) translateY(-10px); }
+            60% { transform: translateX(-50%) translateY(-5px); }
+        }
+
+        /* Sections */
+        section {
+            padding: 5rem 2rem;
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            font-weight: 500;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .section-title::before {
+            content: '';
+            width: 4px;
+            height: 1.5em;
+            background: var(--gradient-hero);
+            border-radius: 2px;
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
+        }
+
+        /* Teaser Figure */
+        .teaser {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid var(--border-subtle);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .teaser::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gradient-instance);
+            opacity: 0.5;
+        }
+
+        .teaser img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        .figure-caption {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-top: 1.2rem;
+            line-height: 1.7;
+        }
+
+        .figure-caption strong {
+            color: var(--instance-cyan);
+            text-shadow: 0 0 10px rgba(0, 245, 255, 0.3);
+        }
+
+        /* Abstract */
+        .abstract-content {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            line-height: 1.9;
+            text-align: justify;
+            max-width: 900px;
+        }
+
+        .abstract-content strong {
+            color: var(--instance-cyan);
+            font-weight: 500;
+        }
+
+        /* Key Features */
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .feature-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 1.8rem;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.4s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .feature-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: var(--gradient-hero);
+            transform: scaleX(0);
+            transform-origin: left;
+            transition: transform 0.4s ease;
+        }
+
+        .feature-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at var(--x, 50%) var(--y, 50%), rgba(0, 245, 255, 0.08), transparent 60%);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .feature-card:hover::before {
+            transform: scaleX(1);
+        }
+
+        .feature-card:hover::after {
+            opacity: 1;
+        }
+
+        .feature-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(0, 245, 255, 0.3);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 245, 255, 0.1);
+        }
+
+        .feature-icon {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1rem;
+            font-size: 1.6rem;
+            position: relative;
+        }
+
+        .feature-card:nth-child(1) .feature-icon { 
+            background: rgba(0, 245, 255, 0.12); 
+            box-shadow: 0 0 20px rgba(0, 245, 255, 0.2);
+        }
+        .feature-card:nth-child(2) .feature-icon { 
+            background: rgba(255, 45, 149, 0.12); 
+            box-shadow: 0 0 20px rgba(255, 45, 149, 0.2);
+        }
+        .feature-card:nth-child(3) .feature-icon { 
+            background: rgba(127, 255, 0, 0.12); 
+            box-shadow: 0 0 20px rgba(127, 255, 0, 0.2);
+        }
+        .feature-card:nth-child(4) .feature-icon { 
+            background: rgba(177, 78, 255, 0.12); 
+            box-shadow: 0 0 20px rgba(177, 78, 255, 0.2);
+        }
+
+        .feature-card h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+            margin-bottom: 0.6rem;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Pipeline */
+        .pipeline-figure {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 2rem;
+            margin: 2rem 0;
+            border: 1px solid var(--border-subtle);
+            position: relative;
+        }
+
+        .pipeline-figure::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gradient-instance);
+            opacity: 0.5;
+        }
+
+        .pipeline-figure img {
+            width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+
+        /* Video Results */
+        .video-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-top: 2rem;
+        }
+
+        .video-card {
+            background: var(--bg-card);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.4s ease;
+        }
+
+        .video-card.featured {
+            grid-column: 1 / -1;
+        }
+
+        .video-card:hover {
+            border-color: rgba(0, 245, 255, 0.4);
+            transform: translateY(-2px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(0, 245, 255, 0.1);
+        }
+
+        .video-wrapper {
+            position: relative;
+            width: 100%;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .video-wrapper video {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: contain;
+        }
+
+        /* Different aspect ratios for different video types */
+        .video-card.hypernerf-video .video-wrapper {
+            aspect-ratio: auto;
+            max-width: 66.67%; /* 2/3 width */
+            margin: 0 auto; /* Center the video */
+        }
+
+        .video-card.hypernerf-video .video-wrapper video {
+            height: auto;
+        }
+
+        .video-card.openvocab-video .video-wrapper {
+            aspect-ratio: auto;
+        }
+
+        .video-card.openvocab-video .video-wrapper video {
+            height: auto;
+        }
+
+        .video-card.neu3d-video .video-wrapper {
+            aspect-ratio: 16 / 9;
+        }
+
+        .video-info {
+            padding: 1.2rem;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .video-info h4 {
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.4rem;
+        }
+
+        .video-info p {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .video-tag {
+            display: inline-block;
+            padding: 0.3rem 0.7rem;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 0.5rem;
+            letter-spacing: 0.03em;
+        }
+
+        .tag-hypernerf {
+            background: rgba(177, 78, 255, 0.15);
+            color: var(--instance-purple);
+            border: 1px solid rgba(177, 78, 255, 0.3);
+        }
+        .tag-neu3d {
+            background: rgba(127, 255, 0, 0.1);
+            color: var(--instance-lime);
+            border: 1px solid rgba(127, 255, 0, 0.3);
+        }
+        .tag-open-vocab {
+            background: rgba(0, 245, 255, 0.1);
+            color: var(--instance-cyan);
+            border: 1px solid rgba(0, 245, 255, 0.3);
+        }
+
+        /* Video case selector */
+        .case-selector {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.8rem;
+            flex-wrap: wrap;
+        }
+
+        .case-btn {
+            background: rgba(var(--border-alpha), 0.05);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 0.4rem 0.9rem;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Source Sans 3', sans-serif;
+        }
+
+        .case-btn:hover {
+            background: rgba(var(--border-alpha), 0.1);
+            border-color: rgba(var(--border-alpha), 0.2);
+            color: var(--text-primary);
+        }
+
+        .case-btn.active {
+            background: var(--gradient-hero);
+            border-color: transparent;
+            color: var(--bg-dark);
+            font-weight: 600;
+        }
+
+        [data-theme="light"] .case-btn.active {
+            color: white;
+        }
+
+        /* Two-level selector for Open-Vocabulary */
+        .two-level-selector {
+            margin-top: 0.8rem;
+        }
+
+        .selector-level {
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+        }
+
+        .selector-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        .selector-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            min-width: 60px;
+        }
+
+        .selector-buttons {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
+
+        /* Citation */
+        .citation-box {
+            background: var(--bg-card);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-top: 2rem;
+            border: 1px solid var(--border-subtle);
+            position: relative;
+        }
+
+        .citation-box::before {
+            content: '@';
+            position: absolute;
+            top: 0.5rem;
+            left: 1rem;
+            font-family: 'Fira Code', monospace;
+            font-size: 2.5rem;
+            background: var(--gradient-hero);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            opacity: 0.3;
+            line-height: 1;
+        }
+
+        .citation-content {
+            font-family: 'Fira Code', monospace;
+            font-size: 0.8rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding-left: 1.5rem;
+            white-space: pre-wrap;
+        }
+
+        .copy-btn {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border-subtle);
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-family: 'Source Sans 3', sans-serif;
+            transition: all 0.3s ease;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 245, 255, 0.1);
+            border-color: var(--instance-cyan);
+            color: var(--text-primary);
+            box-shadow: 0 0 15px rgba(0, 245, 255, 0.2);
+        }
+
+        /* Footer */
+        footer {
+            text-align: center;
+            padding: 4rem 2rem;
+            border-top: 1px solid var(--border-subtle);
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            position: relative;
+        }
+
+        footer::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: var(--gradient-instance);
+            opacity: 0.3;
+        }
+
+        footer a {
+            color: var(--instance-cyan);
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+
+        footer a:hover {
+            text-shadow: 0 0 15px rgba(0, 245, 255, 0.5);
+        }
+
+        .footer-links {
+            display: flex;
+            justify-content: center;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            header {
+                padding: 1rem;
+            }
+
+            nav a {
+                margin-left: 1rem;
+                font-size: 0.8rem;
+            }
+
+            .theme-toggle {
+                margin-left: 0.75rem;
+                gap: 0.25rem;
+            }
+
+            .theme-toggle-icon {
+                width: 14px;
+                height: 14px;
+            }
+
+            .theme-toggle-btn {
+                width: 38px;
+                height: 20px;
+            }
+
+            .theme-toggle-btn::after {
+                width: 14px;
+                height: 14px;
+            }
+
+            [data-theme="light"] .theme-toggle-btn::after {
+                transform: translateX(18px);
+            }
+
+            nav a::after {
+                display: none;
+            }
+
+            section {
+                padding: 3rem 1.5rem;
+            }
+
+            .authors {
+                gap: 0.2rem 1rem;
+            }
+
+            .cta-buttons {
+                flex-direction: column;
+                align-items: center;
+            }
+
+            .btn {
+                width: 100%;
+                max-width: 280px;
+                justify-content: center;
+            }
+
+            .video-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .video-card.featured {
+                grid-column: 1;
+            }
+
+            .gaussian-splat {
+                opacity: 0.5 !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Gaussian Splat Background -->
+    <div class="gaussian-field"></div>
+    <div class="splat-container">
+        <div class="gaussian-splat splat-1"></div>
+        <div class="gaussian-splat splat-2"></div>
+        <div class="gaussian-splat splat-3"></div>
+        <div class="gaussian-splat splat-4"></div>
+        <div class="gaussian-splat splat-5"></div>
+        <div class="gaussian-splat splat-6"></div>
+        <div class="gaussian-splat splat-7"></div>
+        <div class="gaussian-splat splat-8"></div>
+    </div>
+    <div class="micro-particles">
+        <div class="particle particle-1"></div>
+        <div class="particle particle-2"></div>
+        <div class="particle particle-3"></div>
+        <div class="particle particle-4"></div>
+        <div class="particle particle-5"></div>
+        <div class="particle particle-6"></div>
+        <div class="particle particle-7"></div>
+        <div class="particle particle-8"></div>
+        <div class="particle particle-9"></div>
+        <div class="particle particle-10"></div>
+    </div>
+
+    <!-- Header -->
+    <header>
+        <div class="logo">CIF</div>
+        <nav>
+            <a href="#abstract">Abstract</a>
+            <a href="#method">Method</a>
+            <a href="#results">Results</a>
+            <a href="#citation">Citation</a>
+            <div class="theme-toggle">
+                <svg class="theme-toggle-icon moon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                </svg>
+                <button class="theme-toggle-btn" onclick="toggleTheme()" aria-label="Toggle theme"></button>
+                <svg class="theme-toggle-icon sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5"/>
+                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
+                </svg>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="venue-badge">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+            </svg>
+            arXiv 2025
+        </div>
+        <div class="title-container">
+            <h1><span class="highlight">Consistent Instance Field</span> for Dynamic Scene Understanding</h1>
+            <p class="subtitle">Gaussian Splatting for Unified Instance Representation</p>
+        </div>
+
+        <div class="authors">
+            <span class="author"><a href="https://adreamwu.github.io" target="_blank">Junyi Wu</a><sup>1,2</sup></span>
+            <span class="author"><a href="https://nv-nguyen.github.io" target="_blank">Van Nguyen Nguyen</a><sup>2</sup></span>
+            <span class="author"><a href="https://planche.me" target="_blank">Benjamin Planche</a><sup>2</sup></span>
+            <span class="author"><a href="https://scholar.google.com/citations?user=NsYqGP8AAAAJ" target="_blank">Jiachen Tao</a><sup>1,2</sup></span>
+            <span class="author"><a href="https://changchangsun.github.io/Changchangsun/" target="_blank">Changchang Sun</a><sup>2</sup></span>
+            <span class="author"><a href="https://sites.google.com/site/gaozhongpai/home" target="_blank">Zhongpai Gao</a><sup>2</sup></span>
+            <span class="author"><a href="https://ichbill.github.io" target="_blank">Zhenghao Zhao</a><sup>1</sup></span>
+            <span class="author"><a href="https://anwesachoudhuri.github.io" target="_blank">Anwesa Choudhuri</a><sup>2</sup></span>
+            <span class="author"><a href="https://dblp.org/pid/182/4033.html" target="_blank">Gengyu Zhang</a><sup>1</sup></span>
+            <span class="author"><a href="https://mzhengrpi.github.io" target="_blank">Meng Zheng</a><sup>2</sup></span>
+            <span class="author"><a href="https://brack-wang.github.io" target="_blank">Feiran Wang</a><sup>1</sup></span>
+            <span class="author"><a href="https://scholar.google.com/citations?user=S2BT6ogAAAAJ" target="_blank">Terrence Chen</a><sup>2</sup></span>
+            <span class="author"><a href="https://tomyan555.github.io" target="_blank">Yan Yan</a><sup>1</sup></span>
+            <span class="author"><a href="http://wuziyan.com" target="_blank">Ziyan Wu</a><sup>2</sup></span>
+        </div>
+
+        <div class="affiliations">
+            <span class="affiliation"><sup>1</sup><a href="https://www.uic.edu/" target="_blank">University of Illinois Chicago</a></span>
+            <span class="affiliation"><sup>2</sup><a href="https://www.uii-ai.com/" target="_blank">United Imaging Intelligence</a></span>
+        </div>
+
+        <div class="cta-buttons">
+            <a href="https://arxiv.org/pdf/2512.14126" class="btn btn-primary" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                    <polyline points="14 2 14 8 20 8"/>
+                    <line x1="16" y1="13" x2="8" y2="13"/>
+                    <line x1="16" y1="17" x2="8" y2="17"/>
+                </svg>
+                Paper (PDF)
+            </a>
+            <a href="https://arxiv.org/abs/2512.14126" class="btn btn-secondary" target="_blank">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
+                    <line x1="12" y1="17" x2="12.01" y2="17"/>
+                </svg>
+                arXiv
+            </a>
+            <a href="#" onclick="contactAuthor('CIF'); return false;" class="btn btn-secondary">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/>
+                    <polyline points="22,6 12,13 2,6"/>
+                </svg>
+                Contact
+            </a>
+        </div>
+
+        <div class="scroll-indicator">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="6 9 12 15 18 9"/>
+            </svg>
+        </div>
+    </section>
+
+    <!-- Teaser Figure -->
+    <section>
+        <div class="teaser">
+            <img src="figures/teaser.png" alt="CIF-4DGS addresses key challenges in 4D instance segmentation: inconsistent instance supervision, opacity vs occupancy misconception, and semantic sparsity">
+            <p class="figure-caption">
+                <strong>Consistent Instance Field (CIF)</strong> addresses key challenges in 4D Gaussian Splatting for instance understanding: (1) weak to inconsistent instance supervision, (2) opacity vs. occupancy misconception, and (3) semantic sparsity in meaningful regions — achieving cleaner, more consistent instance segmentation across dynamic scenes.
+            </p>
+        </div>
+    </section>
+
+    <!-- Abstract -->
+    <section id="abstract">
+        <h2 class="section-title">Abstract</h2>
+        <p class="abstract-content">
+            Understanding dynamic 3D scenes at the instance level is crucial for applications ranging from autonomous navigation to augmented reality. While <strong>4D Gaussian Splatting</strong> has emerged as a powerful representation for novel view synthesis of dynamic scenes, lifting it to instance-aware understanding remains challenging due to inconsistent instance supervision across views, confusion between opacity and occupancy during rendering, and sparse semantic coverage in regions with limited Gaussian density.
+            <br><br>
+            We introduce the <strong>Consistent Instance Field (CIF)</strong>, a unified representation that addresses these challenges through three key innovations: <strong>Field-Aware Splatting</strong> that properly handles identity distribution during rendering, <strong>Instance-Guided Resampling</strong> that redistributes Gaussians to ensure adequate coverage of semantic regions, and <strong>Instance Identity Estimation</strong> with calibrated probability distributions for robust instance assignment.
+            <br><br>
+            Our approach enables consistent <strong>panoptic segmentation</strong> and <strong>open-vocabulary 4D querying</strong> across dynamic scenes, achieving state-of-the-art results on challenging benchmarks including HyperNeRF and Neu3D datasets.
+        </p>
+    </section>
+
+    <!-- Key Features -->
+    <section>
+        <h2 class="section-title">Key Contributions</h2>
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🎯</div>
+                <h3>Field-Aware Splatting</h3>
+                <p>Novel rendering approach that properly handles identity probability distributions along pixel rays, avoiding the opacity-occupancy confusion in traditional splatting.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Instance-Guided Resampling</h3>
+                <p>Adaptive redistribution of Gaussian primitives based on instance importance, moving density from redundant regions to semantically meaningful areas.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📊</div>
+                <h3>Calibrated Identity Estimation</h3>
+                <p>Robust instance assignment through calibrated probability distributions, handling inconsistent supervision across different viewpoints and timesteps.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔍</div>
+                <h3>Open-Vocabulary Querying</h3>
+                <p>Support for language-guided 4D scene understanding, enabling natural language queries for instance selection and tracking in dynamic scenes.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Method -->
+    <section id="method">
+        <h2 class="section-title">Method Overview</h2>
+        <div class="pipeline-figure">
+            <img src="figures/pipeline.png" alt="CIF-4DGS Pipeline: Instance Field combined with Radiance Field, processed through Field-Aware Splatting and Instance-Guided Resampling">
+            <p class="figure-caption">
+                <strong>CIF-4DGS Pipeline.</strong> We augment 4D Gaussian Splatting with an Instance Field alongside the Radiance Field. Field-Aware Splatting renders identity distributions with proper probability handling. Instance-Guided Resampling redistributes Gaussians from dense redundant regions to sparse but semantically important areas. Instance Identity Estimation uses calibration to handle cross-view inconsistencies.
+            </p>
+        </div>
+    </section>
+
+    <!-- Video Results -->
+    <section id="results">
+        <h2 class="section-title">Results</h2>
+
+        <div class="video-grid">
+            <div class="video-card featured hypernerf-video">
+                <div class="video-wrapper">
+                    <video id="video-hypernerf" controls loop muted playsinline preload="metadata">
+                        <source src="videos/panoptic_segmentation_hypernef1.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="video-info">
+                    <h4>Panoptic Segmentation</h4>
+                    <p>Instance-level segmentation on dynamic scenes</p>
+                    <span class="video-tag tag-hypernerf">HyperNeRF</span>
+                    <div class="case-selector">
+                        <button class="case-btn active" onclick="switchCase('hypernerf', 1)">americano</button>
+                        <button class="case-btn" onclick="switchCase('hypernerf', 2)">chickchicken</button>
+                        <button class="case-btn" onclick="switchCase('hypernerf', 3)">split cookie</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="video-card featured neu3d-video">
+                <div class="video-wrapper">
+                    <video id="video-neu3d" controls loop muted playsinline preload="metadata">
+                        <source src="videos/panoptic_segmentation_neu3d1.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="video-info">
+                    <h4>Panoptic Segmentation</h4>
+                    <p>Consistent instance tracking across views</p>
+                    <span class="video-tag tag-neu3d">Neu3D</span>
+                    <div class="case-selector">
+                        <button class="case-btn active" onclick="switchCase('neu3d', 1)">coffee martini</button>
+                        <button class="case-btn" onclick="switchCase('neu3d', 2)">cut roasted beef</button>
+                        <button class="case-btn" onclick="switchCase('neu3d', 3)">sear steak</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="video-card featured openvocab-video">
+                <div class="video-wrapper">
+                    <video id="video-openvocab" controls loop muted playsinline preload="metadata">
+                        <source src="videos/open_vocabulary_4d_querying_hypernerf1.mp4" type="video/mp4">
+                    </video>
+                </div>
+                <div class="video-info">
+                    <h4>Open-Vocabulary 4D Querying</h4>
+                    <p>Language-guided instance selection in 4D</p>
+                    <span class="video-tag tag-open-vocab">Open-Vocab</span>
+                    <div class="two-level-selector">
+                        <div class="selector-level">
+                            <div class="selector-row">
+                                <div class="selector-buttons">
+                                    <button class="case-btn active" onclick="switchScene('americano')">americano</button>
+                                    <button class="case-btn" onclick="switchScene('espresso')">espresso</button>
+                                </div>
+                            </div>
+                            <div class="selector-row">
+                                <div class="selector-buttons" id="object-buttons">
+                                    <button class="case-btn active" onclick="switchObject('glass cup')">glass cup</button>
+                                    <button class="case-btn" onclick="switchObject('mat')">mat</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Citation -->
+    <section id="citation">
+        <h2 class="section-title">Citation</h2>
+        <div class="citation-box">
+            <button class="copy-btn" onclick="copyCitation()">Copy BibTeX</button>
+            <div class="citation-content">@article{wu2025cif,
+    title={Consistent Instance Field for Dynamic Scene Understanding},
+    author={Wu, Junyi and Nguyen, Van Nguyen and Planche, Benjamin 
+            and Tao, Jiachen and Sun, Changchang and Gao, Zhongpai 
+            and Zhao, Zhenghao and Choudhuri, Anwesa and Zhang, Gengyu 
+            and Zheng, Meng and Wang, Feiran and Chen, Terrence 
+            and Yan, Yan and Wu, Ziyan},
+    journal={arXiv preprint arXiv:2512.14126},
+    year={2025}
+}</div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer>
+        <div class="footer-links">
+            <a href="https://arxiv.org/abs/2512.14126" target="_blank">arXiv</a>
+            <a href="https://www.uii-ai.com/" target="_blank">United Imaging Intelligence</a>
+            <a href="https://www.uic.edu/" target="_blank">UIC</a>
+        </div>
+        <p>© 2025 Consistent Instance Field. Research project by United Imaging Intelligence.</p>
+    </footer>
+
+    <script>
+        // Theme toggle
+        function toggleTheme() {
+            const html = document.documentElement;
+            const currentTheme = html.getAttribute('data-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+            html.setAttribute('data-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+        }
+
+        // Initialize theme from localStorage or system preference
+        (function() {
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme) {
+                document.documentElement.setAttribute('data-theme', savedTheme);
+            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+                document.documentElement.setAttribute('data-theme', 'light');
+            }
+        })();
+
+        // Obfuscated contact to avoid crawlers
+        function contactAuthor(paper) {
+            const u = 'benjamin.planche';
+            const d = 'uii-ai.com';
+            const s = 'Question about ' + paper + ' paper';
+            window.location.href = 'mai' + 'lto:' + u + '@' + d + '?subject=' + encodeURIComponent(s);
+        }
+
+        function copyCitation() {
+            const citation = `@article{wu2025cif,
+    title={Consistent Instance Field for Dynamic Scene Understanding},
+    author={Wu, Junyi and Nguyen, Van Nguyen and Planche, Benjamin and Tao, Jiachen and Sun, Changchang and Gao, Zhongpai and Zhao, Zhenghao and Choudhuri, Anwesa and Zhang, Gengyu and Zheng, Meng and Wang, Feiran and Chen, Terrence and Yan, Yan and Wu, Ziyan},
+    journal={arXiv preprint arXiv:2512.14126},
+    year={2025}
+}`;
+            navigator.clipboard.writeText(citation).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                setTimeout(() => btn.textContent = 'Copy BibTeX', 2000);
+            });
+        }
+
+        // Video case switching
+        function switchCase(type, caseNum) {
+            const video = document.getElementById(`video-${type}`);
+            const videoSource = video.querySelector('source');
+
+            // Define video mappings
+            const videoMap = {
+                'hypernerf': `videos/panoptic_segmentation_hypernef${caseNum}.mp4`,
+                'neu3d': `videos/panoptic_segmentation_neu3d${caseNum}.mp4`,
+                'openvocab': `videos/open_vocabulary_4d_querying_hypernerf${caseNum}.mp4`
+            };
+
+            // Update video source
+            videoSource.src = videoMap[type];
+            video.load();
+
+            // Update button states
+            const parentCard = video.closest('.video-card');
+            const buttons = parentCard.querySelectorAll('.case-btn');
+            buttons.forEach((btn, index) => {
+                if (index === caseNum - 1) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // Two-level selector state
+        let currentScene = 'americano';
+        let currentObject = 'glass cup';
+
+        // Video mapping for open-vocabulary
+        const openVocabVideoMap = {
+            'americano': {
+                'glass cup': 'videos/open_vocabulary_4d_querying_hypernerf1.mp4',
+                'mat': 'videos/open_vocabulary_4d_querying_hypernerf2.mp4'
+            },
+            'espresso': {
+                'steel jug': 'videos/open_vocabulary_4d_querying_hypernerf3.mp4',
+                'coaster': 'videos/open_vocabulary_4d_querying_hypernerf4.mp4'
+            }
+        };
+
+        function switchScene(scene) {
+            currentScene = scene;
+
+            // Update scene button states
+            const sceneButtons = document.querySelectorAll('.selector-row:first-child .case-btn');
+            sceneButtons.forEach(btn => {
+                if (btn.textContent === scene) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update object buttons based on scene
+            const objectButtonsContainer = document.getElementById('object-buttons');
+            if (scene === 'americano') {
+                objectButtonsContainer.innerHTML = `
+                    <button class="case-btn active" onclick="switchObject('glass cup')">glass cup</button>
+                    <button class="case-btn" onclick="switchObject('mat')">mat</button>
+                `;
+                currentObject = 'glass cup';
+            } else if (scene === 'espresso') {
+                objectButtonsContainer.innerHTML = `
+                    <button class="case-btn active" onclick="switchObject('steel jug')">steel jug</button>
+                    <button class="case-btn" onclick="switchObject('coaster')">coaster</button>
+                `;
+                currentObject = 'steel jug';
+            }
+
+            // Update video
+            updateOpenVocabVideo();
+        }
+
+        function switchObject(object) {
+            currentObject = object;
+
+            // Update object button states
+            const objectButtons = document.querySelectorAll('#object-buttons .case-btn');
+            objectButtons.forEach(btn => {
+                if (btn.textContent === object) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+
+            // Update video
+            updateOpenVocabVideo();
+        }
+
+        function updateOpenVocabVideo() {
+            const video = document.getElementById('video-openvocab');
+            const videoSource = video.querySelector('source');
+            const videoPath = openVocabVideoMap[currentScene][currentObject];
+
+            videoSource.src = videoPath;
+            video.load();
+        }
+
+        // Smooth scroll for navigation
+        document.querySelectorAll('nav a').forEach(anchor => {
+            anchor.addEventListener('click', function(e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
+
