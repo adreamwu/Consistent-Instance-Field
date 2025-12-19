@@ -1464,12 +1464,13 @@
             localStorage.setItem('theme', newTheme);
         }
 
-        // Initialize theme from localStorage or system preference
+        // Initialize theme from localStorage or default to light
         (function() {
             const savedTheme = localStorage.getItem('theme');
             if (savedTheme) {
                 document.documentElement.setAttribute('data-theme', savedTheme);
-            } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+            } else {
+                // Default to light theme
                 document.documentElement.setAttribute('data-theme', 'light');
             }
         })();
