@@ -1362,6 +1362,7 @@
             <div class="video-card featured hypernerf-video">
                 <div class="video-wrapper">
                     <video id="video-hypernerf" controls loop muted playsinline preload="metadata">
+                        <source src="compress_videos/panoptic_segmentation_hypernef1.webm" type="video/webm">
                         <source src="videos/panoptic_segmentation_hypernef1.mp4" type="video/mp4">
                     </video>
                 </div>
@@ -1380,6 +1381,7 @@
             <div class="video-card featured neu3d-video">
                 <div class="video-wrapper">
                     <video id="video-neu3d" controls loop muted playsinline preload="metadata">
+                        <source src="compress_videos/panoptic_segmentation_neu3d1.webm" type="video/webm">
                         <source src="videos/panoptic_segmentation_neu3d1.mp4" type="video/mp4">
                     </video>
                 </div>
@@ -1398,6 +1400,7 @@
             <div class="video-card featured openvocab-video">
                 <div class="video-wrapper">
                     <video id="video-openvocab" controls loop muted playsinline preload="metadata">
+                        <source src="compress_videos/open_vocabulary_4d_querying_hypernerf1.webm" type="video/webm">
                         <source src="videos/open_vocabulary_4d_querying_hypernerf1.mp4" type="video/mp4">
                     </video>
                 </div>
@@ -1500,17 +1503,20 @@
         // Video case switching
         function switchCase(type, caseNum) {
             const video = document.getElementById(`video-${type}`);
-            const videoSource = video.querySelector('source');
+            const sources = video.querySelectorAll('source');
 
             // Define video mappings
             const videoMap = {
-                'hypernerf': `videos/panoptic_segmentation_hypernef${caseNum}.mp4`,
-                'neu3d': `videos/panoptic_segmentation_neu3d${caseNum}.mp4`,
-                'openvocab': `videos/open_vocabulary_4d_querying_hypernerf${caseNum}.mp4`
+                'hypernerf': `panoptic_segmentation_hypernef${caseNum}`,
+                'neu3d': `panoptic_segmentation_neu3d${caseNum}`,
+                'openvocab': `open_vocabulary_4d_querying_hypernerf${caseNum}`
             };
 
-            // Update video source
-            videoSource.src = videoMap[type];
+            const baseName = videoMap[type];
+
+            // Update video sources (WebM first, then MP4 fallback)
+            sources[0].src = `compress_videos/${baseName}.webm`;
+            sources[1].src = `videos/${baseName}.mp4`;
             video.load();
 
             // Update button states
@@ -1532,12 +1538,12 @@
         // Video mapping for open-vocabulary
         const openVocabVideoMap = {
             'americano': {
-                'glass cup': 'videos/open_vocabulary_4d_querying_hypernerf1.mp4',
-                'mat': 'videos/open_vocabulary_4d_querying_hypernerf2.mp4'
+                'glass cup': 'open_vocabulary_4d_querying_hypernerf1',
+                'mat': 'open_vocabulary_4d_querying_hypernerf2'
             },
             'espresso': {
-                'steel jug': 'videos/open_vocabulary_4d_querying_hypernerf3.mp4',
-                'coaster': 'videos/open_vocabulary_4d_querying_hypernerf4.mp4'
+                'steel jug': 'open_vocabulary_4d_querying_hypernerf3',
+                'coaster': 'open_vocabulary_4d_querying_hypernerf4'
             }
         };
 
@@ -1593,10 +1599,12 @@
 
         function updateOpenVocabVideo() {
             const video = document.getElementById('video-openvocab');
-            const videoSource = video.querySelector('source');
-            const videoPath = openVocabVideoMap[currentScene][currentObject];
+            const sources = video.querySelectorAll('source');
+            const baseName = openVocabVideoMap[currentScene][currentObject];
 
-            videoSource.src = videoPath;
+            // Update video sources (WebM first, then MP4 fallback)
+            sources[0].src = `compress_videos/${baseName}.webm`;
+            sources[1].src = `videos/${baseName}.mp4`;
             video.load();
         }
 
