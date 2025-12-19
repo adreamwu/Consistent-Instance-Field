@@ -1297,7 +1297,7 @@
     <!-- Teaser Figure -->
     <section>
         <div class="teaser">
-            <img src="figures/teaser.png" alt="CIF-4DGS addresses key challenges in 4D instance segmentation: inconsistent instance supervision, opacity vs occupancy misconception, and semantic sparsity">
+            <img src="figures/teaser.png" alt="CIF addresses key challenges in 4D instance segmentation: inconsistent instance supervision, opacity vs occupancy misconception, and semantic sparsity">
             <p class="figure-caption">
                 <strong>Consistent Instance Field (CIF)</strong> addresses key challenges in 4D Gaussian Splatting for instance understanding: (1) weak to inconsistent instance supervision, (2) opacity vs. occupancy misconception, and (3) semantic sparsity in meaningful regions — achieving cleaner, more consistent instance segmentation across dynamic scenes.
             </p>
@@ -1326,14 +1326,14 @@
                 <p>Novel rendering approach that properly handles identity probability distributions along pixel rays, avoiding the opacity-occupancy confusion in traditional splatting.</p>
             </div>
             <div class="feature-card">
-                <div class="feature-icon">🔄</div>
-                <h3>Instance-Guided Resampling</h3>
-                <p>Adaptive redistribution of Gaussian primitives based on instance importance, moving density from redundant regions to semantically meaningful areas.</p>
-            </div>
-            <div class="feature-card">
                 <div class="feature-icon">📊</div>
                 <h3>Calibrated Identity Estimation</h3>
                 <p>Robust instance assignment through calibrated probability distributions, handling inconsistent supervision across different viewpoints and timesteps.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🔄</div>
+                <h3>Instance-Guided Resampling</h3>
+                <p>Adaptive redistribution of Gaussian primitives based on instance importance, moving density from redundant regions to semantically meaningful areas.</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">🔍</div>
@@ -1347,9 +1347,9 @@
     <section id="method">
         <h2 class="section-title">Method Overview</h2>
         <div class="pipeline-figure">
-            <img src="figures/pipeline.png" alt="CIF-4DGS Pipeline: Instance Field combined with Radiance Field, processed through Field-Aware Splatting and Instance-Guided Resampling">
+            <img src="figures/pipeline.png" alt="CIF Pipeline: Instance Field combined with Radiance Field, processed through Field-Aware Splatting and Instance-Guided Resampling">
             <p class="figure-caption">
-                <strong>CIF-4DGS Pipeline.</strong> We augment 4D Gaussian Splatting with an Instance Field alongside the Radiance Field. Field-Aware Splatting renders identity distributions with proper probability handling. Instance-Guided Resampling redistributes Gaussians from dense redundant regions to sparse but semantically important areas. Instance Identity Estimation uses calibration to handle cross-view inconsistencies.
+                <strong>CIF Pipeline.</strong> We augment 4D Gaussian Splatting with an Instance Field alongside the Radiance Field. Field-Aware Splatting renders identity distributions with proper probability handling. Instance Identity Estimation uses calibration to handle cross-view inconsistencies. Instance-Guided Resampling redistributes Gaussians from dense redundant regions to sparse but semantically important areas.
             </p>
         </div>
     </section>
@@ -1404,7 +1404,7 @@
                 <div class="video-info">
                     <h4>Open-Vocabulary 4D Querying</h4>
                     <p>Language-guided instance selection in 4D</p>
-                    <span class="video-tag tag-open-vocab">Open-Vocab</span>
+                    <span class="video-tag tag-open-vocab">HyperNeRF</span>
                     <div class="two-level-selector">
                         <div class="selector-level">
                             <div class="selector-row">
